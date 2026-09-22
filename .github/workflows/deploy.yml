@@ -36,7 +36,7 @@ jobs:
           if [ "$REPO" = "${OWNER}.github.io" ]; then
             echo "BASE=/" >> "$GITHUB_ENV"
           else
-            echo "BASE=/${REPO}" >> "$GITHUB_ENV"
+            echo "BASE=/${REPO}/" >> "$GITHUB_ENV"
           fi
 
       - name: Build

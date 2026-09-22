@@ -2,7 +2,7 @@ import os from 'node:os';
 import { defineConfig } from 'astro/config';
 
 const site = process.env.SITE || 'http://localhost:4321';
-const base = process.env.BASE || '/';
+const base = (process.env.BASE || '/').replace(/\/?$/, '/');
 
 function lanIPv4() {
   const nets = os.networkInterfaces();
