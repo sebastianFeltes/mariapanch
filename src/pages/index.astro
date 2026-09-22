@@ -1,0 +1,129 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { iconBag, iconBike, iconClock, iconSend, iconUtensils, iconX } from '../icons';
+
+const base = import.meta.env.BASE_URL;
+---
+
+<Layout>
+  <main>
+    <section class="hero">
+      <div class="awning" aria-hidden="true"></div>
+      <div class="wrap hero-inner">
+        <div class="marquee">
+          <h1 class="brand">MARÍA PANCH</h1>
+          <p class="tagline">Súper panchos + papas. Te lo llevamos.</p>
+          <div class="hero-actions">
+            <a class="btn btn-whatsapp" href="#combos">
+              <Fragment set:html={iconUtensils} />
+              Armá tu pedido
+            </a>
+            <a class="btn btn-ghost" href="#envios">
+              <Fragment set:html={iconBike} />
+              Envíos
+            </a>
+          </div>
+          <picture class="hero-maria">
+            <source
+              media="(min-width: 760px)"
+              srcset={`${base}maria_no_bg_xl.webp`}
+              type="image/webp"
+            />
+            <img
+              src={`${base}maria_no_bg.png`}
+              alt="María, con un súper pancho y papas"
+              width="768"
+              height="690"
+              fetchpriority="high"
+              decoding="async"
+            />
+          </picture>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="combos" aria-labelledby="combos-title">
+      <div class="wrap">
+        <div class="section-head">
+          <h2 id="combos-title">Combos</h2>
+          <span class="ticket-label">Menú de hoy</span>
+        </div>
+        <div
+          id="combo-root"
+          data-placeholder={`${base}placeholder.svg`}
+        >
+          <p class="status">Cargando combos…</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="envios">
+      <div class="wrap info-grid">
+        <article class="panel panel-horarios">
+          <span class="stamp">ABIERTO</span>
+          <h2><Fragment set:html={iconClock} /> Horarios</h2>
+          <p class="hours">
+            Vie–Dom 19:00–00:00
+            <small>El resto de la semana, descansamos.</small>
+          </p>
+        </article>
+
+        <article class="panel panel-donde">
+          <span class="stamp stamp-envio">ENVÍOS</span>
+          <h2><Fragment set:html={iconBike} /> Te lo llevamos</h2>
+          <p class="address">Hacemos envíos a todo Berisso.</p>
+          <p class="hours"><small>Consulta por alrededores.</small></p>
+          <p class="hours" data-shipping-cost hidden></p>
+          <a class="btn btn-naranja" href="#combos">
+            <Fragment set:html={iconUtensils} />
+            Armá tu pedido
+          </a>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p>María Panch — pancho de verdad.</p>
+    </div>
+  </footer>
+
+  <button type="button" class="cart-fab" aria-expanded="false" aria-controls="cart-drawer">
+    <Fragment set:html={iconBag} />
+    <span class="cart-fab-text">Tu pedido</span>
+    <span class="cart-count">0</span>
+  </button>
+
+  <div class="cart-layer" hidden>
+    <button type="button" class="cart-backdrop" data-cart-close aria-label="Cerrar pedido"></button>
+    <aside class="cart-drawer" id="cart-drawer" role="dialog" aria-labelledby="cart-title">
+      <div class="cart-head">
+        <h2 id="cart-title"><Fragment set:html={iconBag} /> Tu pedido</h2>
+        <button type="button" class="cart-close" data-cart-close aria-label="Cerrar">
+          <Fragment set:html={iconX} />
+        </button>
+      </div>
+      <div class="cart-lines"></div>
+      <div class="cart-foot">
+        <p class="cart-total">Total $ 0</p>
+        <a class="btn btn-whatsapp cart-send" href="#" target="_blank" rel="noopener noreferrer">
+          <Fragment set:html={iconSend} />
+          Enviar por WhatsApp
+        </a>
+        <p class="cart-note">Hacemos envíos. Dirección y horario los vemos en el chat.</p>
+      </div>
+    </aside>
+  </div>
+</Layout>
+
+<script>
+  import { mountCombos } from '../scripts/mount-combos';
+  import { mountCart } from '../scripts/mount-cart';
+
+  const root = document.getElementById('combo-root');
+  if (root) {
+    void mountCombos(root);
+  }
+  mountCart();
+</script>

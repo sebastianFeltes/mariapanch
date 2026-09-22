@@ -1,0 +1,53 @@
+name: Deploy GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Resolve Pages URLs
+        run: |
+          OWNER="${{ github.repository_owner }}"
+          REPO="${{ github.event.repository.name }}"
+          echo "SITE=https://${OWNER}.github.io" >> "$GITHUB_ENV"
+          if [ "$REPO" = "${OWNER}.github.io" ]; then
+            echo "BASE=/" >> "$GITHUB_ENV"
+          else
+            echo "BASE=/${REPO}" >> "$GITHUB_ENV"
+          fi
+
+      - name: Build
+        run: npm run build
+        env:
+          SITE: ${{ env.SITE }}
+          BASE: ${{ env.BASE }}
+
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          force_orphan: true

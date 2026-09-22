@@ -1,0 +1,42 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = 'María Panch — súper panchos + papas',
+  description = 'Súper panchos + papas. Sin vueltas. Vie–Dom 19:00–00:00 en Villa Roca, Berisso.',
+} = Astro.props;
+
+const canonical = new URL(Astro.url.pathname, Astro.site);
+---
+
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#da291c" />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href={`${import.meta.env.BASE_URL}favicon.svg`} type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;700;800&family=Bungee&family=IBM+Plex+Mono:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="es_AR" />
+    <title>{title}</title>
+  </head>
+  <body>
+    <a class="skip" href="#combos">Ir a los combos</a>
+    <slot />
+  </body>
+</html>
