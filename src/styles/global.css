@@ -321,6 +321,10 @@ a {
   flex-shrink: 0;
 }
 
+.ticket-label[hidden] {
+  display: none;
+}
+
 #pedido-title {
   max-width: 16ch;
   text-wrap: balance;
@@ -857,11 +861,27 @@ a {
 }
 
 .btn-edit {
-  width: 100%;
-  margin: 0.1rem 0 0.35rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  width: auto;
+  min-height: 2.35rem;
+  margin: 0;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.82rem;
   background: var(--amarillo);
   color: var(--marron);
-  box-shadow: 3px 3px 0 var(--marron);
+  box-shadow: 2px 2px 0 var(--marron);
+}
+
+.bill tr.is-round-edit td {
+  padding: 0.4rem 0 0.1rem;
+}
+
+.bill tr.is-round-divider td {
+  padding: 0.55rem 0 0.45rem;
+  border-bottom: 1px solid var(--marron);
 }
 
 .drink-slot .drink-qty {
@@ -2124,15 +2144,151 @@ body.cart-open .cart-fab {
     height: 7.5rem;
   }
 
-  .order-view.is-choose .fork-photo {
-    height: 11rem;
-  }
-
   .order-view.is-choose .fork {
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
   }
 
-  .pick {
+  #pedido .order-view.is-choose {
+    max-width: min(100%, 58rem);
+    margin-inline: auto;
+  }
+
+  .order-view.is-choose .fork-photo {
+    height: calc(11rem * 4 / 3);
+  }
+
+  .order-view.is-choose .fork-card strong {
+    font-size: clamp(1.6rem, 2.2vw, 2.35rem);
+  }
+
+  .order-view.is-choose .fork-card .fork-kicker {
+    display: flex;
+    align-items: flex-end;
+    min-height: 2.65rem;
+    margin-bottom: 0.15rem;
+  }
+
+  #pedido .order-view.is-pancho,
+  #pedido .order-view.is-select {
+    max-width: min(100%, 44rem);
+    margin-inline: auto;
+    width: 100%;
+  }
+
+  #pedido .order-view.is-pancho .topping-scroll,
+  #pedido .order-view.is-pancho > .topping-group,
+  #pedido .order-view.is-select .edit-block,
+  #pedido .order-view.is-select .topping-group {
+    width: 100%;
+  }
+
+  #pedido .order-view.is-pancho .order-head,
+  #pedido .order-view.is-select .order-head {
+    text-align: center;
+  }
+
+  #pedido .order-view.is-pancho .step-rail,
+  #pedido .order-view.is-select .step-rail {
+    justify-content: center;
+  }
+
+  #pedido .topping-list.is-wide {
+    width: 100%;
+    margin-inline: auto;
+  }
+
+  #pedido .topping-list.is-included {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  #pedido .topping-list.is-extras {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  #pedido .topping-list.is-wide .topping {
+    position: static;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.65rem 0.45rem;
+    min-height: 4.35rem;
+  }
+
+  #pedido .topping-list.is-wide .topping-code {
+    position: static;
+    translate: none;
+    width: 2.05rem;
+    height: 2.05rem;
+    font-size: 0.82rem;
+  }
+
+  #pedido .topping-list.is-wide .topping-copy {
+    width: 100%;
+    align-items: center;
+  }
+
+  #pedido .topping-list.is-wide .topping-copy > span:first-child {
+    white-space: normal;
+    text-align: center;
+    line-height: 1.15;
+  }
+
+  .order-view.is-summary {
+    max-width: min(100%, 32rem);
+    margin-inline: auto;
+    align-items: center;
+  }
+
+  .order-view.is-summary .order-head {
+    width: 100%;
+    text-align: center;
+  }
+
+  .order-view.is-summary .receipt {
+    width: 100%;
+  }
+
+  .order-view.is-summary .order-bar {
+    width: 100%;
+  }
+
+  .pick-grid.is-drinks {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.65rem;
+    width: min(100%, 34rem);
+    margin-inline: auto;
+  }
+
+  .pick-grid.is-drinks .drink-slot {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+  }
+
+  .pick-grid.is-drinks .pick {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+    padding: 0.85rem 1rem;
+    font-size: 1.02rem;
+  }
+
+  .pick-grid.is-drinks .pick-swatch {
+    width: 3rem;
+    height: 3rem;
+    font-size: 0.82rem;
+  }
+
+  .pick-grid.is-drinks .drink-qty {
+    margin-top: 0;
+    flex-shrink: 0;
+  }
+
+  .pick-grid:not(.is-drinks) .pick {
     width: calc(50% - 0.25rem);
   }
 

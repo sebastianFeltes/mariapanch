@@ -1,21 +1,36 @@
 import { iconPencil, iconSend } from '../icons';
 import { fetchCombosCsv, formatPrice, whatsappHref } from './combos';
-import { applySheetCsv, codes, labelOf, menu, papasBasePrice, priceOf, type Choice } from './menu';
-
-const DRINK_MAX = 20;
+import {
+  bumpDrinkQty,
+  clampDrinkQty,
+  cloneDrinks,
+  DRINK_MAX,
+  drinkQtyOf,
+  normalizeDrinks,
+  setDrinkQty,
+  toggleDrink,
+  type DrinkPick,
+} from './order-drinks';
+import {
+  escapeHtml,
+  orderActionBar,
+  papasBillLabel,
+  portionOf,
+  recapPanchoBase,
+  recapPapas,
+  type Kind,
+} from './order-ui';
+import { applySheetCsv, codes, labelOf, menu, papasBasePrice, priceOf, type Choice, type Portion } from './menu';
 
 type BuiltPancho = { free: string[]; premium: string[] };
-type Kind = 'combo' | 'pancho' | 'papas';
-type Portion = 'chica' | 'completa';
 
 type PapasPick = { portion: Portion; toppings: string[] };
-type DrinkPick = { id: string; qty: number };
 
 type Round = {
   kind: Kind;
   panchos: BuiltPancho[];
   papas: PapasPick | null;
-  drink: DrinkPick | null;
+  drinks: DrinkPick[];
 };
 
 type Draft = {
@@ -24,8 +39,7 @@ type Draft = {
   free: string[];
   premium: string[];
   papasToppings: string[];
-  drink: string | null;
-  drinkQty: number;
+  drinks: DrinkPick[];
 };
 
 type Step = 'choose' | 'pancho' | 'papas' | 'drink' | 'done' | 'edit';
@@ -38,21 +52,6 @@ type State = {
   editing: number | null;
 };
 
-function escapeHtml(value: string): string {
-  return value
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
-}
-
-function clampQty(value: string | number): number {
-  const qty = Math.floor(Number(value));
-  if (!Number.isFinite(qty)) return 1;
-  return Math.min(DRINK_MAX, Math.max(1, qty));
-}
-
 function blankDraft(kind: Kind): Draft {
   return {
     kind,
@@ -60,13 +59,8 @@ function blankDraft(kind: Kind): Draft {
     free: [],
     premium: [],
     papasToppings: [],
-    drink: null,
-    drinkQty: 1,
+    drinks: [],
   };
-}
-
-function portionOf(kind: Kind): Portion {
-  return kind === 'combo' ? 'chica' : 'completa';
 }
 
 function kindLabel(kind: Kind): string {
@@ -80,7 +74,7 @@ function cloneRound(round: Round): Round {
     kind: round.kind,
     panchos: round.panchos.map((pancho) => ({ free: [...pancho.free], premium: [...pancho.premium] })),
     papas: round.papas ? { portion: round.papas.portion, toppings: [...round.papas.toppings] } : null,
-    drink: round.drink ? { id: round.drink.id, qty: round.drink.qty } : null,
+    drinks: cloneDrinks(round.drinks),
   };
 }
 
@@ -94,8 +88,7 @@ function panchoLines(pancho: BuiltPancho, index: number, total: number): BillLin
 }
 
 function papasLines(papas: PapasPick): BillLine[] {
-  const size = papas.portion === 'chica' ? 'porción chica' : 'porción completa';
-  const lines: BillLine[] = [{ label: `Papas · ${size}`, amount: papasBasePrice(papas.portion) }];
+  const lines: BillLine[] = [{ label: papasBillLabel(papas.portion), amount: papasBasePrice(papas.portion) }];
   papas.toppings.forEach((id) =>
     lines.push({ label: labelOf(menu.papasToppings, id), amount: priceOf(menu.papasToppings, id), sub: true }),
   );
@@ -103,7 +96,7 @@ function papasLines(papas: PapasPick): BillLine[] {
 }
 
 function drinkLines(drink: DrinkPick): BillLine[] {
-  const qty = clampQty(drink.qty);
+  const qty = clampDrinkQty(drink.qty);
   const name = labelOf(menu.drinks, drink.id);
   return [{ label: qty > 1 ? `${name} × ${qty}` : name, amount: priceOf(menu.drinks, drink.id) * qty }];
 }
@@ -112,7 +105,7 @@ function roundBody(round: Round): BillLine[] {
   const lines: BillLine[] = [];
   round.panchos.forEach((pancho, index) => lines.push(...panchoLines(pancho, index, round.panchos.length)));
   if (round.papas) lines.push(...papasLines(round.papas));
-  if (round.drink) lines.push(...drinkLines(round.drink));
+  round.drinks.forEach((drink) => lines.push(...drinkLines(drink)));
   return lines;
 }
 
@@ -126,8 +119,8 @@ function draftBody(draft: Draft, step: Step): BillLine[] {
   if ((draft.kind === 'combo' || draft.kind === 'papas') && step !== 'pancho') {
     lines.push(...papasLines({ portion: portionOf(draft.kind), toppings: draft.papasToppings }));
   }
-  if (draft.drink && draft.drink !== 'none') {
-    lines.push(...drinkLines({ id: draft.drink, qty: draft.drinkQty }));
+  if (step === 'drink') {
+    draft.drinks.forEach((drink) => lines.push(...drinkLines(drink)));
   }
   return lines;
 }
@@ -302,14 +295,6 @@ function pickButton(item: Choice, selected: boolean, action: string, note = ''):
   return `<button type="button" class="pick${selected ? ' is-on' : ''}" data-action="${action}" data-id="${item.id}" aria-pressed="${selected ? 'true' : 'false'}"><span class="pick-swatch" data-swatch="${item.id}" aria-hidden="true"></span><span class="pick-copy"><span>${escapeHtml(item.label)}</span>${noteHtml}</span><span class="pick-price">${escapeHtml(formatPrice(item.price))}</span></button>`;
 }
 
-function backButton(): string {
-  return `<button type="button" class="btn btn-plain btn-back" data-action="back">Volver</button>`;
-}
-
-function pairBar(action: string, label: string): string {
-  return `<div class="order-bar is-pair"><button type="button" class="btn btn-plain" data-action="back">Volver</button><button type="button" class="btn btn-whatsapp" data-action="${action}">${label}</button></div>`;
-}
-
 function stepRail(kind: Kind, step: Step): string {
   const steps: { id: Step; label: string }[] =
     kind === 'papas'
@@ -358,7 +343,13 @@ export function mountOrder(root: HTMLElement) {
   const paintTicket = () => {
     if (!ticket) return;
     const food = foodTotal(state);
-    ticket.textContent = food > 0 ? formatPrice(food) : 'Pedido';
+    if (food > 0) {
+      ticket.hidden = false;
+      ticket.textContent = formatPrice(food);
+    } else {
+      ticket.hidden = true;
+      ticket.textContent = '';
+    }
   };
 
   const paint = (moveFocus = false) => {
@@ -432,7 +423,7 @@ export function mountOrder(root: HTMLElement) {
         <div class="order-head">
           ${stepRail(draft.kind, 'pancho')}
           <h3 id="pancho-title" data-step-title tabindex="-1">Armá tu pancho</h3>
-          <p class="recap">Base ${escapeHtml(formatPrice(menu.panchoBase))}. Incluidos: gratis. A parte: hasta ${menu.premiumMax} (suman).</p>
+          <p class="recap">${escapeHtml(recapPanchoBase())}</p>
         </div>
         <div class="topping-scroll">
           <div class="topping-group" role="group" aria-labelledby="free-label">
@@ -440,28 +431,23 @@ export function mountOrder(root: HTMLElement) {
               <h4 id="free-label">Incluidos</h4>
               <span class="chip-tag">Todos, si querés</span>
             </div>
-            <div class="topping-list is-wide">${freeButtons}</div>
+            <div class="topping-list is-wide is-included">${freeButtons}</div>
           </div>
           <div class="topping-group" role="group" aria-labelledby="premium-label">
             <div class="topping-head">
               <h4 id="premium-label">A parte</h4>
               ${meter(draft.premium.length)}
             </div>
-            <div class="topping-list is-wide">${premiumButtons}</div>
+            <div class="topping-list is-wide is-extras">${premiumButtons}</div>
           </div>
         </div>
         <!-- <div class="dog-stage" data-dog></div> -->
-        <div class="order-bar is-pair">
-          <button type="button" class="btn btn-plain" data-action="back">Volver</button>
-          <button type="button" class="btn btn-whatsapp" data-action="save-pancho">Listo</button>
-        </div>
+        ${orderActionBar({ kind: 'button', action: 'save-pancho', label: 'Listo' })}
       </div>
     `;
   };
 
   const renderPapas = (draft: Draft) => {
-    const portion = portionOf(draft.kind);
-    const note = portion === 'chica' ? 'Porción chica (menos que pedidas solas)' : 'Porción completa';
     const buttons = menu.papasToppings
       .map((item) => toppingButton(item, draft.papasToppings.includes(item.id), false, 'papas-topping'))
       .join('');
@@ -471,50 +457,51 @@ export function mountOrder(root: HTMLElement) {
       <div class="order-head">
         ${stepRail(draft.kind, 'papas')}
         <h3 data-step-title tabindex="-1">Armá tus papas</h3>
-        <p class="recap">Base ${escapeHtml(formatPrice(papasBasePrice(portion)))}. ${escapeHtml(note)}. A parte: lo que le sumes.</p>
+        <p class="recap">${escapeHtml(recapPapas(draft.kind))}</p>
       </div>
       <div class="topping-group" role="group" aria-labelledby="papas-premium-label">
         <div class="topping-head">
           <h4 id="papas-premium-label">A parte</h4>
         </div>
-        <div class="topping-list is-wide">${buttons}</div>
+        <div class="topping-list is-wide is-extras">${buttons}</div>
       </div>
       <!-- <div class="dog-stage" data-fries></div> -->
-      ${pairBar('save-papas', 'Listo')}
+      ${orderActionBar({ kind: 'button', action: 'save-papas', label: 'Listo' })}
     </div>
   `;
   };
 
-  const drinkQty = (draft: Draft) => `
+  const drinkQtyBlock = (id: string, qty: number) => `
     <div class="drink-qty">
       <span class="qty-label">¿Cuántas?</span>
-      <button type="button" class="qty-btn" data-action="drink-delta" data-delta="-1"${draft.drinkQty <= 1 ? ' disabled' : ''} aria-label="Sacar una">−</button>
-      <input type="number" min="1" max="${DRINK_MAX}" inputmode="numeric" value="${draft.drinkQty}" data-drink-qty aria-label="Cantidad" />
-      <button type="button" class="qty-btn" data-action="drink-delta" data-delta="1"${draft.drinkQty >= DRINK_MAX ? ' disabled' : ''} aria-label="Agregar una">+</button>
+      <button type="button" class="qty-btn" data-action="drink-delta" data-id="${escapeHtml(id)}" data-delta="-1"${qty <= 1 ? ' disabled' : ''} aria-label="Sacar una">−</button>
+      <input type="number" min="1" max="${DRINK_MAX}" inputmode="numeric" value="${qty}" data-drink-qty data-id="${escapeHtml(id)}" aria-label="Cantidad" />
+      <button type="button" class="qty-btn" data-action="drink-delta" data-id="${escapeHtml(id)}" data-delta="1"${qty >= DRINK_MAX ? ' disabled' : ''} aria-label="Agregar una">+</button>
     </div>`;
 
   const renderDrink = (draft: Draft) => `
-    <div class="order-view">
+    <div class="order-view is-select">
       <div class="order-head">
         ${stepRail(draft.kind, 'drink')}
         <h3 data-step-title tabindex="-1">¿Querés algo para tomar?</h3>
       </div>
-      <div class="pick-grid" role="group" aria-label="Bebidas">
+      <div class="pick-grid is-drinks" role="group" aria-label="Bebidas">
         ${menu.drinks
           .map((item) => {
-            const selected = draft.drink === item.id;
+            const qty = drinkQtyOf(draft.drinks, item.id);
+            const selected = qty != null;
             const code = DRINK_CODE[item.id] ?? '';
             return `<div class="drink-slot">
               <button type="button" class="pick${selected ? ' is-on' : ''}" data-action="pick-drink" data-id="${item.id}" aria-pressed="${selected ? 'true' : 'false'}"><span class="pick-swatch" data-swatch="${item.id}">${escapeHtml(code)}</span><span class="pick-copy"><span>${escapeHtml(item.label)}</span></span><span class="pick-price">${escapeHtml(formatPrice(item.price))}</span></button>
-              ${selected ? drinkQty(draft) : ''}
+              ${selected ? drinkQtyBlock(item.id, qty) : ''}
             </div>`;
           })
           .join('')}
       </div>
       ${
-        draft.drink && draft.drink !== 'none'
-          ? pairBar('save-drink', 'Listo')
-          : pairBar('skip-drink', 'Sin bebida')
+        draft.drinks.length > 0
+          ? orderActionBar({ kind: 'button', action: 'save-drink', label: 'Listo' })
+          : orderActionBar({ kind: 'button', action: 'skip-drink', label: 'Sin bebida' })
       }
     </div>
   `;
@@ -528,11 +515,11 @@ export function mountOrder(root: HTMLElement) {
           <h4 class="edit-kicker">Pancho</h4>
           <div class="topping-group" role="group" aria-labelledby="edit-free">
             <div class="topping-head"><h4 id="edit-free">Incluidos</h4></div>
-            <div class="topping-list is-wide">${menu.freeToppings.map((item) => toppingButton(item, draft.free.includes(item.id), false, 'topping')).join('')}</div>
+            <div class="topping-list is-wide is-included">${menu.freeToppings.map((item) => toppingButton(item, draft.free.includes(item.id), false, 'topping')).join('')}</div>
           </div>
           <div class="topping-group" role="group" aria-labelledby="edit-premium">
             <div class="topping-head"><h4 id="edit-premium">A parte</h4>${meter(draft.premium.length)}</div>
-            <div class="topping-list is-wide">${menu.premiumToppings
+            <div class="topping-list is-wide is-extras">${menu.premiumToppings
               .map((item) => {
                 const pressed = draft.premium.includes(item.id);
                 return toppingButton(item, pressed, !pressed && draft.premium.length >= menu.premiumMax, 'topping');
@@ -547,23 +534,20 @@ export function mountOrder(root: HTMLElement) {
           <h4 class="edit-kicker">Papas</h4>
           <div class="topping-group" role="group" aria-label="Papas a parte">
             <div class="topping-head"><h4>A parte</h4></div>
-            <div class="topping-list is-wide">${menu.papasToppings.map((item) => toppingButton(item, draft.papasToppings.includes(item.id), false, 'papas-topping')).join('')}</div>
+            <div class="topping-list is-wide is-extras">${menu.papasToppings.map((item) => toppingButton(item, draft.papasToppings.includes(item.id), false, 'papas-topping')).join('')}</div>
           </div>
           <!-- <div class="dog-stage" data-fries></div> -->
         </section>`
       : '';
     return `
-      <div class="order-view">
+      <div class="order-view is-select">
         <div class="order-head">
-          ${backButton()}
           <h3 data-step-title tabindex="-1">Editá este pedido</h3>
           <p class="recap">Sacá o sumá. El precio se actualiza.</p>
         </div>
         ${panchoBits}
         ${papasBits}
-        <div class="order-bar">
-          <button type="button" class="btn btn-whatsapp" data-action="save-edit">Guardar cambios</button>
-        </div>
+        ${orderActionBar({ kind: 'button', action: 'save-edit', label: 'Guardar cambios' })}
       </div>
     `;
   };
@@ -571,14 +555,20 @@ export function mountOrder(root: HTMLElement) {
   const renderDone = () => {
     const rows = state.rounds
       .map((round, index) => {
-        const title = state.rounds.length > 1 ? `${kindLabel(round.kind)} ${index + 1}` : kindLabel(round.kind);
+        const section =
+          state.rounds.length > 1
+            ? `<tr class="is-head"><th colspan="2">${escapeHtml(`${kindLabel(round.kind)} ${index + 1}`)}</th></tr>`
+            : '';
         const body = roundBody(round).map(lineRow).join('');
-        return `<tr class="is-head"><th colspan="2"><button type="button" class="btn btn-edit" data-action="edit-round" data-index="${index}">${iconPencil} Editar ${escapeHtml(title)}</button></th></tr>${body}`;
+        const edit = `<tr class="is-round-edit"><td colspan="2"><button type="button" class="btn btn-edit" data-action="edit-round" data-index="${index}">${iconPencil} Editar</button></td></tr>`;
+        const divider =
+          index < state.rounds.length - 1 ? `<tr class="is-round-divider" aria-hidden="true"><td colspan="2"></td></tr>` : '';
+        return `${section}${body}${edit}${divider}`;
       })
       .join('');
     const shipping = `<tr><th scope="row">Envío</th><td>${escapeHtml(formatPrice(menu.shipping))}</td></tr>`;
     return `
-      <div class="order-view">
+      <div class="order-view is-summary">
         <div class="order-head">
           <h3 data-step-title tabindex="-1">Tu pedido</h3>
           <p class="recap">Envío ${escapeHtml(formatPrice(menu.shipping))}.</p>
@@ -595,10 +585,12 @@ export function mountOrder(root: HTMLElement) {
           </table>
         </div>
         <div class="order-bar">
-          <div class="order-bar is-pair">
-            <button type="button" class="btn btn-plain" data-action="back">Volver</button>
-            <a class="btn btn-whatsapp" href="${escapeHtml(whatsappHref(whatsappText(state)))}" target="_blank" rel="noopener noreferrer">${iconSend} Enviar</a>
-          </div>
+          ${orderActionBar({
+            kind: 'link',
+            href: whatsappHref(whatsappText(state)),
+            label: 'Enviar',
+            iconHtml: iconSend,
+          })}
           <div class="end-more">
             <button type="button" class="btn btn-plain" data-action="repeat">+ Otro igual</button>
             <button type="button" class="btn btn-combo" data-action="start-combo">+ Combo</button>
@@ -686,7 +678,7 @@ export function mountOrder(root: HTMLElement) {
     if (!draft) return;
     const papas =
       draft.kind === 'pancho' ? null : { portion: portionOf(draft.kind), toppings: [...draft.papasToppings] };
-    const drink = draft.drink && draft.drink !== 'none' ? { id: draft.drink, qty: clampQty(draft.drinkQty) } : null;
+    const drinks = normalizeDrinks(draft.drinks);
     if (draft.kind === 'combo' && (!draft.panchos.length || !papas)) return;
     if (draft.kind === 'pancho' && !draft.panchos.length) return;
     if (draft.kind === 'papas' && !papas) return;
@@ -694,7 +686,7 @@ export function mountOrder(root: HTMLElement) {
       kind: draft.kind,
       panchos: draft.panchos.map((pancho) => ({ free: [...pancho.free], premium: [...pancho.premium] })),
       papas,
-      drink,
+      drinks,
     });
     state.draft = null;
     go('done');
@@ -728,8 +720,7 @@ export function mountOrder(root: HTMLElement) {
         free: [],
         premium: [],
         papasToppings: last.papas ? [...last.papas.toppings] : [],
-        drink: last.drink?.id ?? 'none',
-        drinkQty: last.drink?.qty ?? 1,
+        drinks: cloneDrinks(last.drinks),
       };
       state.step = 'drink';
       paint(true);
@@ -820,8 +811,7 @@ export function mountOrder(root: HTMLElement) {
         free: [...(round.panchos[0]?.free ?? [])],
         premium: [...(round.panchos[0]?.premium ?? [])],
         papasToppings: [...(round.papas?.toppings ?? [])],
-        drink: round.drink?.id ?? null,
-        drinkQty: round.drink?.qty ?? 1,
+        drinks: cloneDrinks(round.drinks),
       };
       go('edit');
       return;
@@ -838,25 +828,28 @@ export function mountOrder(root: HTMLElement) {
       return;
     }
     if (action === 'pick-drink' && state.draft) {
-      if (state.draft.drink !== id) state.draft.drinkQty = 1;
-      state.draft.drink = id;
+      state.draft.drinks = toggleDrink(state.draft.drinks, id);
       paint();
       return;
     }
-    if (action === 'drink-delta' && state.draft) {
-      state.draft.drinkQty = clampQty(state.draft.drinkQty + Number(target.dataset.delta));
+    if (action === 'drink-delta' && state.draft && id) {
+      state.draft.drinks = bumpDrinkQty(state.draft.drinks, id, Number(target.dataset.delta));
       paint();
       return;
     }
     if (action === 'save-drink' && state.draft) {
-      const input = root.querySelector<HTMLInputElement>('[data-drink-qty]');
-      if (input) state.draft.drinkQty = clampQty(input.value);
-      if (!state.draft.drink || state.draft.drink === 'none') return;
+      root.querySelectorAll<HTMLInputElement>('[data-drink-qty]').forEach((input) => {
+        const drinkId = input.dataset.id;
+        if (!drinkId) return;
+        state.draft!.drinks = setDrinkQty(state.draft!.drinks, drinkId, input.value);
+      });
+      state.draft.drinks = normalizeDrinks(state.draft.drinks);
+      if (!state.draft.drinks.length) return;
       commitDraft();
       return;
     }
     if (action === 'skip-drink' && state.draft) {
-      state.draft.drink = 'none';
+      state.draft.drinks = [];
       commitDraft();
       return;
     }
@@ -883,7 +876,9 @@ export function mountOrder(root: HTMLElement) {
   root.addEventListener('change', (event) => {
     const input = event.target;
     if (!(input instanceof HTMLInputElement) || !input.matches('[data-drink-qty]') || !state.draft) return;
-    state.draft.drinkQty = clampQty(input.value);
+    const drinkId = input.dataset.id;
+    if (!drinkId) return;
+    state.draft.drinks = setDrinkQty(state.draft.drinks, drinkId, input.value);
     paint();
   });
 
