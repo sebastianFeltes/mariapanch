@@ -1,0 +1,39 @@
+{
+  "panchoBase": 2500,
+  "shipping": 1000,
+  "premiumMax": 3,
+  "freeToppings": [
+    { "id": "papas-pay", "label": "Papas Pay", "price": 0, "code": "PP" },
+    { "id": "ketchup", "label": "Ketchup", "price": 0, "code": "KE" },
+    { "id": "mostaza", "label": "Mostaza", "price": 0, "code": "MO" },
+    { "id": "mayonesa", "label": "Mayonesa", "price": 0, "code": "MA" }
+  ],
+  "premiumToppings": [
+    { "id": "panceta", "label": "Panceta", "price": 700, "code": "PA" },
+    { "id": "roquefort", "label": "Roquefort", "price": 700, "code": "RO" },
+    { "id": "cheddar", "label": "Cheddar", "price": 500, "code": "CH" },
+    { "id": "jamon", "label": "Jamón cocido", "price": 400, "code": "JA" },
+    { "id": "cebolla-caramelizada", "label": "Cebolla caramelizada", "price": 300, "code": "CC" },
+    { "id": "cebolla-crispy", "label": "Cebolla crispy", "price": 300, "code": "CR" },
+    { "id": "mozzarella", "label": "Mozzarella", "price": 400, "code": "MZ" },
+    { "id": "huevo", "label": "Huevo", "price": 300, "code": "HU" },
+    { "id": "aceituna", "label": "Aceituna", "price": 300, "code": "AC" },
+    { "id": "criolla", "label": "Salsa criolla", "price": 300, "code": "SC" },
+    { "id": "verdeo", "label": "Verdeo", "price": 200, "code": "VE" }
+  ],
+  "papasBase": {
+    "completa": 3500,
+    "chica": 2500
+  },
+  "papasToppings": [
+    { "id": "cheddar", "label": "Cheddar", "price": 600, "code": "CH" },
+    { "id": "panceta", "label": "Panceta", "price": 800, "code": "PA" },
+    { "id": "verdeo", "label": "Verdeo", "price": 300, "code": "VE" }
+  ],
+  "drinks": [
+    { "id": "coca", "label": "Coca-Cola", "price": 2500 },
+    { "id": "sprite", "label": "Sprite", "price": 2500 },
+    { "id": "fanta", "label": "Fanta", "price": 2500 },
+    { "id": "agua", "label": "Agua", "price": 2000 }
+  ]
+}

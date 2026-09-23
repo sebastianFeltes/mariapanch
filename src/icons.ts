@@ -17,8 +17,16 @@ export const iconBike = svg(
   '<circle cx="18.5" cy="17.5" r="3.5"/><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="15" cy="5" r="1"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/>',
 );
 
+export const iconMoto = svg(
+  '<circle cx="5.5" cy="17" r="2.8"/><circle cx="18.5" cy="17" r="2.8"/><path d="M8.2 17h7.1"/><path d="M15.4 17 13 8.2h3.1l2.3 5.4"/><path d="M8 17 11.4 10.2H13"/><path d="M13 8.2 9 6.4"/><path d="M16.1 8.2H19"/>',
+);
+
 export const iconUtensils = svg(
   '<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3v7"/>',
+);
+
+export const iconPencil = svg(
+  '<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/>',
 );
 
 export const iconSend = svg(

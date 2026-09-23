@@ -1,6 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { iconBag, iconBike, iconClock, iconSend, iconUtensils, iconX } from '../icons';
+import { iconClock, iconMoto, iconUtensils } from '../icons';
 
 const base = import.meta.env.BASE_URL;
 ---
@@ -11,15 +11,24 @@ const base = import.meta.env.BASE_URL;
       <div class="awning" aria-hidden="true"></div>
       <div class="wrap hero-inner">
         <div class="marquee">
-          <h1 class="brand">MARÍA PANCH</h1>
+          <h1 class="brand">
+            <img
+              src={`${base}maria_panch_route_letters.png`}
+              alt="María Panch"
+              width="951"
+              height="490"
+              fetchpriority="high"
+              decoding="async"
+            />
+          </h1>
           <p class="tagline">Súper panchos + papas. Te lo llevamos.</p>
           <div class="hero-actions">
-            <a class="btn btn-whatsapp" href="#combos">
+            <a class="btn btn-whatsapp" href="#pedido">
               <Fragment set:html={iconUtensils} />
               Armá tu pedido
             </a>
             <a class="btn btn-ghost" href="#envios">
-              <Fragment set:html={iconBike} />
+              <Fragment set:html={iconMoto} />
               Envíos
             </a>
           </div>
@@ -42,39 +51,35 @@ const base = import.meta.env.BASE_URL;
       </div>
     </section>
 
-    <section class="section" id="combos" aria-labelledby="combos-title">
+    <section class="section" id="pedido" aria-labelledby="pedido-title">
       <div class="wrap">
         <div class="section-head">
-          <h2 id="combos-title">Combos</h2>
-          <span class="ticket-label">Menú de hoy</span>
+          <h2 id="pedido-title">Armá tu combo de pancho y papas</h2>
+          <span class="ticket-label" id="pedido-ticket">Pedido</span>
         </div>
-        <div
-          id="combo-root"
-          data-placeholder={`${base}placeholder.svg`}
-        >
-          <p class="status">Cargando combos…</p>
-        </div>
+        <div id="pedido-root" data-base={base}></div>
       </div>
     </section>
 
     <section class="section" id="envios">
       <div class="wrap info-grid">
         <article class="panel panel-horarios">
-          <span class="stamp">ABIERTO</span>
+          <span class="stamp is-closed" id="open-badge">CERRADO</span>
           <h2><Fragment set:html={iconClock} /> Horarios</h2>
           <p class="hours">
-            Vie–Dom 19:00–00:00
+            Jue–Vie–Sáb 19:00–00:00
             <small>El resto de la semana, descansamos.</small>
           </p>
         </article>
 
         <article class="panel panel-donde">
           <span class="stamp stamp-envio">ENVÍOS</span>
-          <h2><Fragment set:html={iconBike} /> Te lo llevamos</h2>
-          <p class="address">Hacemos envíos a todo Berisso.</p>
-          <p class="hours"><small>Consulta por alrededores.</small></p>
-          <p class="hours" data-shipping-cost hidden></p>
-          <a class="btn btn-naranja" href="#combos">
+          <h2><Fragment set:html={iconMoto} /> Te lo llevamos</h2>
+          <p class="hours">
+            <small data-shipping-note>Envío $ 1.000. Depende de la zona.</small>
+            <small>Consultá si llegamos.</small>
+          </p>
+          <a class="btn btn-naranja" href="#pedido">
             <Fragment set:html={iconUtensils} />
             Armá tu pedido
           </a>
@@ -89,41 +94,32 @@ const base = import.meta.env.BASE_URL;
     </div>
   </footer>
 
-  <button type="button" class="cart-fab" aria-expanded="false" aria-controls="cart-drawer">
-    <Fragment set:html={iconBag} />
-    <span class="cart-fab-text">Tu pedido</span>
-    <span class="cart-count">0</span>
-  </button>
-
-  <div class="cart-layer" hidden>
-    <button type="button" class="cart-backdrop" data-cart-close aria-label="Cerrar pedido"></button>
-    <aside class="cart-drawer" id="cart-drawer" role="dialog" aria-labelledby="cart-title">
-      <div class="cart-head">
-        <h2 id="cart-title"><Fragment set:html={iconBag} /> Tu pedido</h2>
-        <button type="button" class="cart-close" data-cart-close aria-label="Cerrar">
-          <Fragment set:html={iconX} />
-        </button>
-      </div>
-      <div class="cart-lines"></div>
-      <div class="cart-foot">
-        <p class="cart-total">Total $ 0</p>
-        <a class="btn btn-whatsapp cart-send" href="#" target="_blank" rel="noopener noreferrer">
-          <Fragment set:html={iconSend} />
-          Enviar por WhatsApp
-        </a>
-        <p class="cart-note">Hacemos envíos. Dirección y horario los vemos en el chat.</p>
-      </div>
-    </aside>
-  </div>
 </Layout>
 
 <script>
-  import { mountCombos } from '../scripts/mount-combos';
-  import { mountCart } from '../scripts/mount-cart';
+  import { mountOrder } from '../scripts/mount-order';
 
-  const root = document.getElementById('combo-root');
-  if (root) {
-    void mountCombos(root);
-  }
-  mountCart();
+  const root = document.getElementById('pedido-root');
+  if (root) mountOrder(root);
+
+  const openBadge = document.getElementById('open-badge');
+  const openDays = new Set(['Thu', 'Fri', 'Sat']);
+
+  const paintOpenBadge = () => {
+    if (!openBadge) return;
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Argentina/Buenos_Aires',
+      weekday: 'short',
+      hour: 'numeric',
+      hourCycle: 'h23',
+    }).formatToParts(new Date());
+    const day = parts.find((part) => part.type === 'weekday')?.value ?? '';
+    const hour = Number(parts.find((part) => part.type === 'hour')?.value);
+    const open = openDays.has(day) && hour >= 19;
+    openBadge.textContent = open ? 'ABIERTO' : 'CERRADO';
+    openBadge.classList.toggle('is-closed', !open);
+  };
+
+  paintOpenBadge();
+  window.setInterval(paintOpenBadge, 60_000);
 </script>

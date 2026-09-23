@@ -117,6 +117,39 @@ function normalizeKey(value: string): string {
     .trim();
 }
 
+export type SheetRow = {
+  code: string;
+  name: string;
+  price: number;
+  active: boolean;
+};
+
+export function parseSheetRows(csv: string): SheetRow[] {
+  const rows = parseCsvRows(csv);
+  if (rows.length < 2) return [];
+  const headers = rows[0].map((header) => header.trim().toLowerCase());
+  const at = (key: string) => headers.indexOf(key);
+  const codeIdx = at('code');
+  const nameIdx = at('name');
+  const priceIdx = at('sale_price');
+  const activeIdx = at('is_active');
+  if (codeIdx < 0 || nameIdx < 0 || priceIdx < 0) return [];
+
+  return rows.slice(1).flatMap((row) => {
+    const code = (row[codeIdx] ?? '').trim().toUpperCase();
+    const name = (row[nameIdx] ?? '').trim();
+    if (!code || !name) return [];
+    return [
+      {
+        code,
+        name,
+        price: parsePrice((row[priceIdx] ?? '').trim()),
+        active: (row[activeIdx] ?? '1').trim() !== '0',
+      },
+    ];
+  });
+}
+
 export function isShippingRow(item: { id?: string; name?: string }): boolean {
   return /\bcosto\s*envio\b/.test(normalizeKey(`${item.id ?? ''} ${item.name ?? ''}`));
 }
