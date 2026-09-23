@@ -175,7 +175,14 @@ function whatsappText(state: State, orderId: string): string {
   return `Hola, quiero este pedido (ref ${orderId}):\n\n${rows.join('\n')}\n\nTotal: ${formatPrice(grandTotal(state))}\n\nDespués te paso dirección y horario.`;
 }
 
-function submitOrder(state: State) {
+function clearOrder(state: State) {
+  state.step = 'choose';
+  state.rounds = [];
+  state.draft = null;
+  state.editing = null;
+}
+
+function submitOrder(state: State, onSent?: () => void) {
   if (!state.rounds.length) return;
   const orderId = makeOrderId();
   const subtotal = foodTotal(state);
@@ -194,6 +201,8 @@ function submitOrder(state: State) {
   });
 
   window.open(whatsappHref(message), '_blank', 'noopener,noreferrer');
+  clearOrder(state);
+  onSent?.();
 }
 
 const DOG_LAYERS: Record<string, string> = {
@@ -348,7 +357,11 @@ function stepRail(kind: Kind, step: Step): string {
   return `<ol class="step-rail" aria-label="Pasos del pedido">${items}</ol>`;
 }
 
-export function mountOrder(root: HTMLElement) {
+export type MountOrderOptions = {
+  onOrderSent?: () => void;
+};
+
+export function mountOrder(root: HTMLElement, options: MountOrderOptions = {}) {
   const ticket = document.getElementById('pedido-ticket');
   const base = (root.dataset.base || '/').replace(/\/?$/, '/');
   const fallback = `${base}placeholder.svg`;
@@ -878,7 +891,10 @@ export function mountOrder(root: HTMLElement) {
       return;
     }
     if (action === 'send-order') {
-      submitOrder(state);
+      submitOrder(state, () => {
+        paint();
+        options.onOrderSent?.();
+      });
       return;
     }
     if (action === 'repeat') {
@@ -893,10 +909,7 @@ export function mountOrder(root: HTMLElement) {
       return;
     }
     if (action === 'reset') {
-      state.step = 'choose';
-      state.rounds = [];
-      state.draft = null;
-      state.editing = null;
+      clearOrder(state);
       paint(true);
     }
   });

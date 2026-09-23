@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { iconClock, iconMoto, iconUtensils } from '../icons';
+import { social } from '../data/social';
+import { iconClock, iconInstagram, iconMoto, iconTikTok, iconUtensils, iconX } from '../icons';
 
 const base = import.meta.env.BASE_URL;
 ---
@@ -89,18 +90,65 @@ const base = import.meta.env.BASE_URL;
   </main>
 
   <footer class="site-footer">
-    <div class="wrap">
+    <div class="wrap site-footer__inner">
       <p>María Panch — pancho de verdad.</p>
+      <nav class="social-links social-links--footer" aria-label="Redes sociales">
+        <a class="social-link" href={social.instagram} target="_blank" rel="noopener noreferrer">
+          <Fragment set:html={iconInstagram} />
+          <span>Instagram</span>
+        </a>
+        <a class="social-link" href={social.tiktok} target="_blank" rel="noopener noreferrer">
+          <Fragment set:html={iconTikTok} />
+          <span>TikTok</span>
+        </a>
+      </nav>
     </div>
   </footer>
+
+  <div class="thanks-modal" id="thanks-modal" hidden>
+    <button type="button" class="thanks-modal__backdrop" data-close-thanks aria-label="Cerrar"></button>
+    <div
+      class="thanks-modal__panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="thanks-title"
+      tabindex="-1"
+    >
+      <button type="button" class="thanks-modal__close" data-close-thanks aria-label="Cerrar">
+        <Fragment set:html={iconX} />
+      </button>
+      <img
+        class="thanks-modal__medal"
+        src={`${base}maria_medalla.png`}
+        alt=""
+        width="200"
+        height="200"
+        decoding="async"
+      />
+      <h2 class="thanks-modal__title" id="thanks-title">¡Gracias por tu pedido!</h2>
+      <p class="thanks-modal__text">¡Que lo disfrutes!</p>
+      <nav class="social-links social-links--modal" aria-label="Seguinos en redes">
+        <a class="social-link" href={social.instagram} target="_blank" rel="noopener noreferrer">
+          <Fragment set:html={iconInstagram} />
+          <span>Instagram</span>
+        </a>
+        <a class="social-link" href={social.tiktok} target="_blank" rel="noopener noreferrer">
+          <Fragment set:html={iconTikTok} />
+          <span>TikTok</span>
+        </a>
+      </nav>
+    </div>
+  </div>
 
 </Layout>
 
 <script>
   import { mountOrder } from '../scripts/mount-order';
+  import { mountThanksModal } from '../scripts/thanks-modal';
 
   const root = document.getElementById('pedido-root');
-  if (root) mountOrder(root);
+  const thanks = mountThanksModal();
+  if (root) mountOrder(root, { onOrderSent: thanks.open });
 
   const openBadge = document.getElementById('open-badge');
   const openDays = new Set(['Thu', 'Fri', 'Sat']);
