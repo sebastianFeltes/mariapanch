@@ -21,17 +21,19 @@ import {
   type Kind,
 } from './order-ui';
 import { applySheetCsv, codes, labelOf, menu, papasBasePrice, priceOf, type Choice, type Portion } from './menu';
+import {
+  buildOrderLines,
+  cloneRoundsForPayload,
+  makeOrderId,
+  registerOrder,
+  type OrderRound,
+} from './order-register';
 
 type BuiltPancho = { free: string[]; premium: string[] };
 
 type PapasPick = { portion: Portion; toppings: string[] };
 
-type Round = {
-  kind: Kind;
-  panchos: BuiltPancho[];
-  papas: PapasPick | null;
-  drinks: DrinkPick[];
-};
+type Round = OrderRound;
 
 type Draft = {
   kind: Kind;
@@ -163,14 +165,35 @@ function grandTotal(state: State): number {
   return food > 0 ? food + menu.shipping : 0;
 }
 
-function whatsappText(state: State): string {
+function whatsappText(state: State, orderId: string): string {
   const rows = billLines(state).map((line) => {
     if (line.head) return line.label;
     const price = line.amount == null ? '' : ` — ${formatPrice(line.amount)}`;
     return `${line.sub ? '· ' : ''}${line.label}${price}`;
   });
   rows.push(`Envío — ${formatPrice(menu.shipping)}`);
-  return `Hola, quiero este pedido:\n\n${rows.join('\n')}\n\nTotal: ${formatPrice(grandTotal(state))}\n\nDespués te paso dirección y horario.`;
+  return `Hola, quiero este pedido (ref ${orderId}):\n\n${rows.join('\n')}\n\nTotal: ${formatPrice(grandTotal(state))}\n\nDespués te paso dirección y horario.`;
+}
+
+function submitOrder(state: State) {
+  if (!state.rounds.length) return;
+  const orderId = makeOrderId();
+  const subtotal = foodTotal(state);
+  const shipping = menu.shipping;
+  const total = grandTotal(state);
+  const rounds = cloneRoundsForPayload(state.rounds);
+  const message = whatsappText(state, orderId);
+
+  registerOrder({
+    orderId,
+    whatsappMessage: message,
+    totals: { subtotal, shipping, total },
+    rounds,
+    lines: buildOrderLines(rounds, shipping),
+    source: 'web',
+  });
+
+  window.open(whatsappHref(message), '_blank', 'noopener,noreferrer');
 }
 
 const DOG_LAYERS: Record<string, string> = {
@@ -586,9 +609,10 @@ export function mountOrder(root: HTMLElement) {
         </div>
         <div class="order-bar">
           ${orderActionBar({
-            kind: 'link',
-            href: whatsappHref(whatsappText(state)),
+            kind: 'button',
+            action: 'send-order',
             label: 'Enviar',
+            className: 'btn-whatsapp',
             iconHtml: iconSend,
           })}
           <div class="end-more">
@@ -851,6 +875,10 @@ export function mountOrder(root: HTMLElement) {
     if (action === 'skip-drink' && state.draft) {
       state.draft.drinks = [];
       commitDraft();
+      return;
+    }
+    if (action === 'send-order') {
+      submitOrder(state);
       return;
     }
     if (action === 'repeat') {

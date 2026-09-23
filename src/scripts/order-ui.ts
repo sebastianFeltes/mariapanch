@@ -13,7 +13,7 @@ export function escapeHtml(value: string): string {
 }
 
 export type OrderBarPrimary =
-  | { kind: 'button'; action: string; label: string; className?: string }
+  | { kind: 'button'; action: string; label: string; className?: string; iconHtml?: string }
   | { kind: 'link'; href: string; label: string; iconHtml?: string };
 
 /** Volver + acción principal, mitad y mitad. */
@@ -21,7 +21,7 @@ export function orderActionBar(primary: OrderBarPrimary): string {
   const primaryEl =
     primary.kind === 'link'
       ? `<a class="btn btn-whatsapp" href="${escapeHtml(primary.href)}" target="_blank" rel="noopener noreferrer">${primary.iconHtml ?? ''}${escapeHtml(primary.label)}</a>`
-      : `<button type="button" class="btn ${escapeHtml(primary.className ?? 'btn-whatsapp')}" data-action="${escapeHtml(primary.action)}">${escapeHtml(primary.label)}</button>`;
+      : `<button type="button" class="btn ${escapeHtml(primary.className ?? 'btn-whatsapp')}" data-action="${escapeHtml(primary.action)}">${primary.iconHtml ?? ''}${escapeHtml(primary.label)}</button>`;
   return `<div class="order-bar is-pair"><button type="button" class="btn btn-plain" data-action="back">Volver</button>${primaryEl}</div>`;
 }
 

@@ -44,6 +44,9 @@ jobs:
         env:
           SITE: ${{ env.SITE }}
           BASE: ${{ env.BASE }}
+          PUBLIC_ORDERS_WEBAPP_URL: ${{ secrets.PUBLIC_ORDERS_WEBAPP_URL }}
+          PUBLIC_ORDERS_SECRET: ${{ secrets.PUBLIC_ORDERS_SECRET }}
+          PUBLIC_APP_VERSION: ${{ github.sha }}
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v4
