@@ -144,7 +144,7 @@ export function parseSheetRows(csv: string): SheetRow[] {
         code,
         name,
         price: parsePrice((row[priceIdx] ?? '').trim()),
-        active: (row[activeIdx] ?? '1').trim() !== '0',
+        active: activeIdx < 0 ? true : (row[activeIdx] ?? '').trim() === '1',
       },
     ];
   });

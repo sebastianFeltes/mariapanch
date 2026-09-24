@@ -86,24 +86,26 @@ const base = import.meta.env.BASE_URL;
           </a>
         </article>
       </div>
+      <footer class="site-footer">
+        <div class="wrap site-footer__inner">
+          <p class="site-footer__copy">María Panch © 2026 · Todos los derechos reservados · Desarrollado por exFutura</p>
+          <div class="site-footer__social">
+            <span class="site-footer__follow">Seguinos en</span>
+            <nav class="social-links social-links--footer" aria-label="Redes sociales">
+              <a class="social-link" href={social.instagram} target="_blank" rel="noopener noreferrer">
+                <Fragment set:html={iconInstagram} />
+                <span>Instagram</span>
+              </a>
+              <a class="social-link" href={social.tiktok} target="_blank" rel="noopener noreferrer">
+                <Fragment set:html={iconTikTok} />
+                <span>TikTok</span>
+              </a>
+            </nav>
+          </div>
+        </div>
+      </footer>
     </section>
   </main>
-
-  <footer class="site-footer">
-    <div class="wrap site-footer__inner">
-      <p>María Panch — pancho de verdad.</p>
-      <nav class="social-links social-links--footer" aria-label="Redes sociales">
-        <a class="social-link" href={social.instagram} target="_blank" rel="noopener noreferrer">
-          <Fragment set:html={iconInstagram} />
-          <span>Instagram</span>
-        </a>
-        <a class="social-link" href={social.tiktok} target="_blank" rel="noopener noreferrer">
-          <Fragment set:html={iconTikTok} />
-          <span>TikTok</span>
-        </a>
-      </nav>
-    </div>
-  </footer>
 
   <div class="thanks-modal" id="thanks-modal" hidden>
     <button type="button" class="thanks-modal__backdrop" data-close-thanks aria-label="Cerrar"></button>
@@ -125,8 +127,8 @@ const base = import.meta.env.BASE_URL;
         height="200"
         decoding="async"
       />
-      <h2 class="thanks-modal__title" id="thanks-title">¡Gracias por tu pedido!</h2>
-      <p class="thanks-modal__text">¡Que lo disfrutes!</p>
+      <h2 class="thanks-modal__title" id="thanks-title">¡Gracias por tu pedido! ¡Que lo disfrutes!</h2>
+      <p class="thanks-modal__follow">¿Nos seguís en las redes?</p>
       <nav class="social-links social-links--modal" aria-label="Seguinos en redes">
         <a class="social-link" href={social.instagram} target="_blank" rel="noopener noreferrer">
           <Fragment set:html={iconInstagram} />

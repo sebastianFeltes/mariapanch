@@ -639,9 +639,20 @@ a {
   box-shadow: 1px 1px 0 var(--marron);
 }
 
-.topping.is-locked {
+.topping.is-locked,
+.topping.is-off,
+.pick.is-off,
+.drink-slot.is-off {
   opacity: 0.42;
   cursor: not-allowed;
+}
+
+.topping.is-off small,
+.pick.is-off .pick-note {
+  color: var(--rojo);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .meter {
@@ -1301,14 +1312,32 @@ a {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1rem;
+  gap: 0.85rem;
 }
 
-.site-footer p {
+.site-footer__copy {
   margin: 0;
+  max-width: 36rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.45;
+  text-transform: uppercase;
+}
+
+.site-footer__social {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem 0.75rem;
+}
+
+.site-footer__follow {
   font-family: var(--font-display);
-  font-size: clamp(0.95rem, 2.4vw, 1.2rem);
-  letter-spacing: 0.02em;
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
 }
 
 .social-links {
@@ -1414,6 +1443,9 @@ body.is-modal-open {
 
 .thanks-modal__medal {
   width: min(52vw, 9.5rem);
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: contain;
   margin: 0.25rem auto 0.85rem;
   filter: drop-shadow(4px 4px 0 rgb(58 28 13 / 0.2));
 }
@@ -1426,10 +1458,12 @@ body.is-modal-open {
   color: var(--rojo);
 }
 
-.thanks-modal__text {
-  margin: 0 0 1.1rem;
-  font-size: 1.05rem;
-  font-weight: 700;
+.thanks-modal__follow {
+  margin: 0.85rem 0 0.7rem;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  color: var(--marron);
 }
 
 .social-links--modal .social-link {
@@ -2122,10 +2156,6 @@ body.cart-open .cart-fab {
     padding-bottom: 0.75rem;
   }
 
-  #envios {
-    padding-bottom: 1.5rem;
-  }
-
   .panel h2 {
     font-size: 1.28rem;
     justify-content: center;
@@ -2156,8 +2186,29 @@ body.cart-open .cart-fab {
     margin-bottom: 0.4rem;
   }
 
+  #envios {
+    padding-bottom: 0;
+  }
+
   .site-footer {
-    display: none;
+    display: block;
+    flex-shrink: 0;
+    margin-top: 0;
+    padding: 0.75rem 0.7rem calc(0.8rem + env(safe-area-inset-bottom, 0px));
+    scroll-snap-align: end;
+  }
+
+  .site-footer__copy {
+    font-size: 0.68rem;
+  }
+
+  .site-footer__follow {
+    font-size: 0.82rem;
+  }
+
+  .social-links--footer .social-link {
+    padding: 0.35rem 0.6rem;
+    font-size: 0.82rem;
   }
 
   .cart-fab {

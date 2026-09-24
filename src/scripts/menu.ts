@@ -1,7 +1,7 @@
 import raw from '../data/menu.json';
 import { parseSheetRows } from './combos';
 
-export type Choice = { id: string; label: string; price: number; code?: string };
+export type Choice = { id: string; label: string; price: number; code?: string; active?: boolean };
 export type Portion = 'chica' | 'completa';
 
 export type Menu = {
@@ -89,14 +89,19 @@ function badgeOf(code: string): string {
   return tail.slice(0, 2);
 }
 
-function choiceFromSheet(code: string, name: string, price: number): Choice {
+function choiceFromSheet(code: string, name: string, price: number, active: boolean): Choice {
   const known = SHEET_ITEM[code];
   return {
     id: known?.id ?? code.toLowerCase(),
     label: known?.label ?? name,
     price: money(price, 0),
     code: badgeOf(code),
+    active,
   };
+}
+
+export function isChoiceActive(item: Choice): boolean {
+  return item.active !== false;
 }
 
 /** Precios vivos del Sheet. El envío se guarda y solo se muestra en el resumen. */
@@ -109,10 +114,11 @@ export function applySheetCsv(csv: string): boolean {
   const chica = rows.find((row) => row.code === 'SP-PF');
   const completa = rows.find((row) => row.code === 'PF');
   const shipping = rows.find((row) => row.code === 'EN');
-  const free = parsed.filter((row) => row.code.startsWith('SP-') && row.code !== 'SP-PF' && row.price <= 0);
-  const premium = rows.filter((row) => row.code.startsWith('SP-') && row.code !== 'SP-PF' && row.price > 0);
-  const papas = rows.filter((row) => row.code.startsWith('PF-'));
-  const drinks = rows.filter((row) => row.code.startsWith('BE-'));
+  const isTopping = (row: { code: string }) => row.code.startsWith('SP-') && row.code !== 'SP-PF';
+  const free = parsed.filter((row) => isTopping(row) && row.price <= 0);
+  const premium = parsed.filter((row) => isTopping(row) && row.price > 0);
+  const papas = parsed.filter((row) => row.code.startsWith('PF-'));
+  const drinks = parsed.filter((row) => row.code.startsWith('BE-'));
 
   if (pancho) menu.panchoBase = money(pancho.price, menu.panchoBase);
   if (shipping) menu.shipping = money(shipping.price, menu.shipping);
@@ -122,10 +128,12 @@ export function applySheetCsv(csv: string): boolean {
       menu.papasBase,
     );
   }
-  if (free.length) menu.freeToppings = free.map((row) => choiceFromSheet(row.code, row.name, row.price));
-  if (premium.length) menu.premiumToppings = premium.map((row) => choiceFromSheet(row.code, row.name, row.price));
-  if (papas.length) menu.papasToppings = papas.map((row) => choiceFromSheet(row.code, row.name, row.price));
-  if (drinks.length) menu.drinks = drinks.map((row) => choiceFromSheet(row.code, row.name, row.price));
+  const toChoice = (row: { code: string; name: string; price: number; active: boolean }) =>
+    choiceFromSheet(row.code, row.name, row.price, row.active);
+  if (free.length) menu.freeToppings = free.map(toChoice);
+  if (premium.length) menu.premiumToppings = premium.map(toChoice);
+  if (papas.length) menu.papasToppings = papas.map(toChoice);
+  if (drinks.length) menu.drinks = drinks.map(toChoice);
   codes = toppingCodes([...menu.freeToppings, ...menu.premiumToppings]);
   return true;
 }

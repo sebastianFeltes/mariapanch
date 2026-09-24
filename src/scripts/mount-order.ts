@@ -20,7 +20,7 @@ import {
   recapPapas,
   type Kind,
 } from './order-ui';
-import { applySheetCsv, codes, labelOf, menu, papasBasePrice, priceOf, type Choice, type Portion } from './menu';
+import { applySheetCsv, codes, isChoiceActive, labelOf, menu, papasBasePrice, priceOf, type Choice, type Portion } from './menu';
 import {
   buildOrderLines,
   cloneRoundsForPayload,
@@ -312,9 +312,12 @@ function friesSvg(toppings: string[]): string {
 const DRINK_CODE: Record<string, string> = { coca: 'CC', sprite: 'SP', fanta: 'FA', agua: 'AG' };
 
 function toppingButton(item: Choice, pressed: boolean, locked: boolean, action: string): string {
+  const off = !isChoiceActive(item);
   const price = item.price > 0 ? `<small>${escapeHtml(formatPrice(item.price))}</small>` : '';
+  const status = off ? '<small>Agotado</small>' : price;
   const code = item.code || codes.get(item.id) || '··';
-  return `<button type="button" class="topping${pressed ? ' is-on' : ''}${locked ? ' is-locked' : ''}" data-action="${action}" data-id="${item.id}" aria-pressed="${pressed ? 'true' : 'false'}"${locked ? ' aria-disabled="true"' : ''}><span class="topping-code" aria-hidden="true">${escapeHtml(code)}</span><span class="topping-copy"><span>${escapeHtml(item.label)}</span>${price}</span></button>`;
+  const on = pressed && !off;
+  return `<button type="button" class="topping${on ? ' is-on' : ''}${locked && !off ? ' is-locked' : ''}${off ? ' is-off' : ''}" data-action="${action}" data-id="${item.id}" aria-pressed="${on ? 'true' : 'false'}"${off ? ' disabled' : locked ? ' aria-disabled="true"' : ''}><span class="topping-code" aria-hidden="true">${escapeHtml(code)}</span><span class="topping-copy"><span>${escapeHtml(item.label)}</span>${status}</span></button>`;
 }
 
 function meter(count: number): string {
@@ -524,11 +527,12 @@ export function mountOrder(root: HTMLElement, options: MountOrderOptions = {}) {
       <div class="pick-grid is-drinks" role="group" aria-label="Bebidas">
         ${menu.drinks
           .map((item) => {
+            const off = !isChoiceActive(item);
             const qty = drinkQtyOf(draft.drinks, item.id);
-            const selected = qty != null;
+            const selected = qty != null && !off;
             const code = DRINK_CODE[item.id] ?? '';
-            return `<div class="drink-slot">
-              <button type="button" class="pick${selected ? ' is-on' : ''}" data-action="pick-drink" data-id="${item.id}" aria-pressed="${selected ? 'true' : 'false'}"><span class="pick-swatch" data-swatch="${item.id}">${escapeHtml(code)}</span><span class="pick-copy"><span>${escapeHtml(item.label)}</span></span><span class="pick-price">${escapeHtml(formatPrice(item.price))}</span></button>
+            return `<div class="drink-slot${off ? ' is-off' : ''}">
+              <button type="button" class="pick${selected ? ' is-on' : ''}${off ? ' is-off' : ''}" data-action="pick-drink" data-id="${item.id}" aria-pressed="${selected ? 'true' : 'false'}"${off ? ' disabled' : ''}><span class="pick-swatch" data-swatch="${item.id}">${escapeHtml(code)}</span><span class="pick-copy"><span>${escapeHtml(item.label)}</span>${off ? '<span class="pick-note">Agotado</span>' : ''}</span><span class="pick-price">${escapeHtml(formatPrice(item.price))}</span></button>
               ${selected ? drinkQtyBlock(item.id, qty) : ''}
             </div>`;
           })
@@ -646,6 +650,7 @@ export function mountOrder(root: HTMLElement, options: MountOrderOptions = {}) {
     if (dog) dog.innerHTML = dogSvg(draft.free, draft.premium);
 
     root.querySelectorAll<HTMLButtonElement>('[data-action="topping"]').forEach((button) => {
+      if (button.classList.contains('is-off') || button.disabled) return;
       const id = button.dataset.id || '';
       const isFree = menu.freeToppings.some((item) => item.id === id);
       const pressed = isFree ? draft.free.includes(id) : draft.premium.includes(id);
@@ -682,12 +687,15 @@ export function mountOrder(root: HTMLElement, options: MountOrderOptions = {}) {
   const toggleTopping = (id: string) => {
     const draft = state.draft;
     if (!draft) return;
-    if (menu.freeToppings.some((item) => item.id === id)) {
+    const freeItem = menu.freeToppings.find((item) => item.id === id);
+    if (freeItem) {
+      if (!isChoiceActive(freeItem)) return;
       draft.free = draft.free.includes(id) ? draft.free.filter((item) => item !== id) : [...draft.free, id];
       syncPancho();
       return;
     }
-    if (!menu.premiumToppings.some((item) => item.id === id)) return;
+    const premiumItem = menu.premiumToppings.find((item) => item.id === id);
+    if (!premiumItem || !isChoiceActive(premiumItem)) return;
     if (draft.premium.includes(id)) {
       draft.premium = draft.premium.filter((item) => item !== id);
       syncPancho();
@@ -703,7 +711,8 @@ export function mountOrder(root: HTMLElement, options: MountOrderOptions = {}) {
 
   const togglePapasTopping = (id: string) => {
     const draft = state.draft;
-    if (!draft || !menu.papasToppings.some((item) => item.id === id)) return;
+    const papasItem = menu.papasToppings.find((item) => item.id === id);
+    if (!draft || !papasItem || !isChoiceActive(papasItem)) return;
     draft.papasToppings = draft.papasToppings.includes(id)
       ? draft.papasToppings.filter((item) => item !== id)
       : [...draft.papasToppings, id];
@@ -865,6 +874,8 @@ export function mountOrder(root: HTMLElement, options: MountOrderOptions = {}) {
       return;
     }
     if (action === 'pick-drink' && state.draft) {
+      const drink = menu.drinks.find((item) => item.id === id);
+      if (!drink || !isChoiceActive(drink)) return;
       state.draft.drinks = toggleDrink(state.draft.drinks, id);
       paint();
       return;
@@ -926,9 +937,38 @@ export function mountOrder(root: HTMLElement, options: MountOrderOptions = {}) {
   paint();
   syncShippingNote();
 
+  const keepActive = (ids: string[], list: Choice[]) => {
+    const allowed = new Set(list.filter(isChoiceActive).map((item) => item.id));
+    return ids.filter((id) => allowed.has(id));
+  };
+
+  const dropInactive = () => {
+    const cleanPancho = (pancho: { free: string[]; premium: string[] }) => ({
+      free: keepActive(pancho.free, menu.freeToppings),
+      premium: keepActive(pancho.premium, menu.premiumToppings),
+    });
+    const cleanDrinks = (drinks: DrinkPick[]) =>
+      drinks.filter((drink) => {
+        const item = menu.drinks.find((choice) => choice.id === drink.id);
+        return Boolean(item && isChoiceActive(item));
+      });
+    state.rounds.forEach((round) => {
+      round.panchos = round.panchos.map(cleanPancho);
+      if (round.papas) round.papas.toppings = keepActive(round.papas.toppings, menu.papasToppings);
+      round.drinks = cleanDrinks(round.drinks);
+    });
+    if (!state.draft) return;
+    state.draft.free = keepActive(state.draft.free, menu.freeToppings);
+    state.draft.premium = keepActive(state.draft.premium, menu.premiumToppings);
+    state.draft.papasToppings = keepActive(state.draft.papasToppings, menu.papasToppings);
+    state.draft.panchos = state.draft.panchos.map(cleanPancho);
+    state.draft.drinks = cleanDrinks(state.draft.drinks);
+  };
+
   void fetchCombosCsv('live')
     .then((csv) => {
       if (!applySheetCsv(csv)) return;
+      dropInactive();
       syncShippingNote();
       paint();
     })
