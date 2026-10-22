@@ -366,6 +366,7 @@ export type MountOrderOptions = {
 
 export function mountOrder(root: HTMLElement, options: MountOrderOptions = {}) {
   const ticket = document.getElementById('pedido-ticket');
+  const hint = document.getElementById('pedido-hint');
   const base = (root.dataset.base || '/').replace(/\/?$/, '/');
   const fallback = `${base}placeholder.svg`;
 
@@ -402,6 +403,7 @@ export function mountOrder(root: HTMLElement, options: MountOrderOptions = {}) {
       });
     });
     paintTicket();
+    if (hint) hint.hidden = state.step !== 'choose';
     if (!moveFocus) return;
     root.querySelector<HTMLElement>('[data-step-title]')?.focus({ preventScroll: true });
   };
