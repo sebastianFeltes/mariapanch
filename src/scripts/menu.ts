@@ -59,29 +59,30 @@ export function normalizeMenu(input: unknown): Menu {
 
 export const menu = normalizeMenu(raw);
 
-const SHEET_ITEM: Record<string, { id: string; label: string }> = {
-  'SP-PP': { id: 'papas-pay', label: 'Papas Pay' },
-  'SP-KE': { id: 'ketchup', label: 'Ketchup' },
-  'SP-MO': { id: 'mostaza', label: 'Mostaza' },
-  'SP-MA': { id: 'mayonesa', label: 'Mayonesa' },
-  'SP-PA': { id: 'panceta', label: 'Panceta' },
-  'SP-RO': { id: 'roquefort', label: 'Roquefort' },
-  'SP-CH': { id: 'cheddar', label: 'Cheddar' },
-  'SP-JA': { id: 'jamon', label: 'Jamón cocido' },
-  'SP-CC': { id: 'cebolla-caramelizada', label: 'Cebolla caramelizada' },
-  'SP-CR': { id: 'cebolla-crispy', label: 'Cebolla crispy' },
-  'SP-MZ': { id: 'mozzarella', label: 'Mozzarella' },
-  'SP-HU': { id: 'huevo', label: 'Huevo' },
-  'SP-AC': { id: 'aceituna', label: 'Aceituna' },
-  'SP-SC': { id: 'criolla', label: 'Salsa criolla' },
-  'SP-VE': { id: 'verdeo', label: 'Verdeo' },
-  'PF-CH': { id: 'cheddar', label: 'Cheddar' },
-  'PF-PA': { id: 'panceta', label: 'Panceta' },
-  'PF-VE': { id: 'verdeo', label: 'Verdeo' },
-  'BE-CO': { id: 'coca', label: 'Coca-Cola' },
-  'BE-FA': { id: 'fanta', label: 'Fanta' },
-  'BE-SP': { id: 'sprite', label: 'Sprite' },
-  'BE-AG': { id: 'agua', label: 'Agua' },
+/** Id interno estable. El nombre visible sale siempre de la columna `name` del Sheet. */
+const SHEET_ITEM: Record<string, string> = {
+  'SP-PP': 'papas-pay',
+  'SP-KE': 'ketchup',
+  'SP-MO': 'mostaza',
+  'SP-MA': 'mayonesa',
+  'SP-PA': 'panceta',
+  'SP-RO': 'roquefort',
+  'SP-CH': 'cheddar',
+  'SP-JA': 'jamon',
+  'SP-CC': 'cebolla-caramelizada',
+  'SP-CR': 'cebolla-crispy',
+  'SP-MZ': 'mozzarella',
+  'SP-HU': 'huevo',
+  'SP-AC': 'aceituna',
+  'SP-SC': 'criolla',
+  'SP-VE': 'verdeo',
+  'PF-CH': 'cheddar',
+  'PF-PA': 'panceta',
+  'PF-VE': 'verdeo',
+  'BE-CO': 'coca',
+  'BE-FA': 'fanta',
+  'BE-SP': 'sprite',
+  'BE-AG': 'agua',
 };
 
 function badgeOf(code: string): string {
@@ -90,10 +91,9 @@ function badgeOf(code: string): string {
 }
 
 function choiceFromSheet(code: string, name: string, price: number, active: boolean): Choice {
-  const known = SHEET_ITEM[code];
   return {
-    id: known?.id ?? code.toLowerCase(),
-    label: known?.label ?? name,
+    id: SHEET_ITEM[code] ?? code.toLowerCase(),
+    label: name,
     price: money(price, 0),
     code: badgeOf(code),
     active,
