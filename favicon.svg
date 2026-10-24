@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="María Panch">
+  <rect width="64" height="64" fill="#ffcc00"/>
+  <rect x="4" y="4" width="56" height="56" fill="none" stroke="#3a1c0d" stroke-width="4"/>
+  <text x="32" y="42" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="22" fill="#da291c">MP</text>
+</svg>
